@@ -322,6 +322,14 @@ std::string sp_websocket::getSec_WS_Acc(std::string &Sec_WS_Key)
 
 bool sp_websocket::frame_analysis(int len)
 {
+    this->ws_data_frame.Payload.clear();
+    this->ws_data_frame.Payload = "";
+    std::cout << "len:" << len << '\n';
+    for (int i = 0; i < len; i++)
+    {
+        printf("%x ", (unsigned char)this->recv_buff[i]);
+    }
+    printf("\n");
     int pos = 0;
     this->ws_data_frame.FIN = (uint8_t)((this->recv_buff[pos] >> 7) & 0x1);
     this->ws_data_frame.RSV = (uint8_t)((this->recv_buff[pos] >> 4) & 0x7);
@@ -363,33 +371,40 @@ bool sp_websocket::frame_analysis(int len)
             int j = i % 4;
             this->ws_data_frame.Payload += (char)(this->recv_buff[pos++] ^ this->ws_data_frame.Maskingkey[j]);
         }
+        this->ws_data_frame.Payload[this->ws_data_frame.PayloadLen] += '\0';
     }
     else
     {
         this->ws_data_frame.Payload = (const char *)this->recv_buff;
         this->ws_data_frame.Payload += '\0';
     }
-
-    this->ws_data_frame.Payload[this->ws_data_frame.PayloadLen] = '\0';
     return true;
 }
 
 void sp_websocket::payload_analysis(int len)
 {
+    std::cout << "len:" << len << '\n';
+    for (int i = 0; i < len; i++)
+    {
+        printf("%x ", (unsigned char)this->recv_buff[i]);
+    }
+    printf("\n");
     if (this->ws_data_frame.Mask == 1)
     {
-        for (int i = 0; i < (this->ws_data_frame.PayloadLen < 126 ? this->ws_data_frame.PayloadLen : this->ws_data_frame.ExtendPayloadLen); i++)
+        for (int i = 0; i < len; i++)
         {
             int j = i % 4;
-            this->ws_data_frame.Payload[i] = (char)(this->recv_buff[i] ^ this->ws_data_frame.Maskingkey[j]);
+            this->ws_data_frame.Payload += (char)(this->recv_buff[i] ^ this->ws_data_frame.Maskingkey[j]);
         }
+        this->ws_data_frame.Payload += '\0';
     }
     else
     {
-        this->ws_data_frame.Payload = (const char *)this->recv_buff;
+        this->ws_data_frame.Payload = this->recv_buff;
         this->ws_data_frame.Payload += '\0';
     }
 }
+
 
 int sp_websocket::on_recv()
 {
