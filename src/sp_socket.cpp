@@ -16,7 +16,7 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 
-extern sp_websocket& obj;
+extern sp_websocket &ws_obj;
 
 bool split(std::string str, std::string splitStr, std::vector<std::string> &buffer)
 {
@@ -535,30 +535,32 @@ void sp_websocket::upgrade_check()
 void sp_WS_message()
 {
     int len = 0;
-    while (obj.isActive)
+    while (ws_obj.isActive)
     {
-        len = obj.on_recv();
-        if (obj.frame_analysis(len) == false)
+        len = ws_obj.on_recv();
+        if (ws_obj.frame_analysis(len) == false)
         {
-            len = obj.on_recv();
-            obj.payload_analysis(len);
+            len = ws_obj.on_recv();
+            ws_obj.payload_analysis(len);
         }
 
-        if (obj.getOpcode() == 0x1)
+        if (ws_obj.getOpcode() == 0x1)
         {
-            std::cout << obj.getPayload() << std::endl;
+            std::cout << ws_obj.getPayload() << std::endl;
         }
-        else if (obj.getOpcode() == 0x9)
+        else if (ws_obj.getOpcode() == 0x9)
         {
-
+            printf("[%s]]Received ping\n", __FUNCTION__);
+            uint8_t pong[2] = {0x8A, 0}; // 报文头
+            int sendStatus = send(ws_obj.getClientsock(), pong, 2, 0);
         }
-        else if (obj.getOpcode() == 0x8)
+        else if (ws_obj.getOpcode() == 0x8)
         {
-            obj.isActive = false;
+            ws_obj.isActive = false;
             printf("[%s]Close socket\n", __FUNCTION__);
             printf("-------------------------------------------------------------\n\n\n");
             break;
         }
     }
-    close(obj.getClientsock());
+    close(ws_obj.getClientsock());
 }
